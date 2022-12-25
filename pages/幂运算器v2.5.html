@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+ <head> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+  <title>Math.pow(2,5)</title>
+  <meta charset="utf-8">
+  <h1 class="center">次方运算器v2.5</h1>
+  <h3 class="center">猴某人(HTMG)制作</h3>
+  <style>
+   #base {
+     border-top-style:none;
+     border-right-style:none;
+     border-left-style:none;
+     border-bottom-style:solid;
+     border-width:5px;
+     border-color:#ffdddd;
+     font-size:80px;
+     width:48px;
+     height:80px;
+     text-align:center;
+   }
+
+   #aaa {
+     border-top-style:none;
+     border-right-style:none;
+     border-left-style:none;
+     border-bottom-style:solid;
+     border-width:5px;
+     border-color:#ffdddd;
+     font-size:20px;
+     width:75px;
+     height:20px;
+     vertical-align:top;
+   }
+  
+   .center {
+     text-align:center;
+   }
+
+   .center2 {
+     width:140px;
+     margin:auto;
+   }
+
+   .button {
+     border-style:none;
+     width:140px;
+     height:30px;
+     background-color:#ffdddd;
+   }
+
+   .result_box {
+     text-align:center;
+   }
+
+   #result {
+     background-color:#aaffaa;
+     color:green;
+     width:100%;
+     height:200px;
+     text-align:center;
+     border-style:none;
+   }
+
+   #time {
+     background-color:#aaaaff;
+     color:blue;
+     border-style:none;
+     width:100%;
+     text-align:center;
+   }
+
+   #digit {
+     background-color:#ffaaaa;
+     color:red;
+     border-style:none;
+     width:100%;
+     text-align:center;
+   }
+  </style>
+ </head>
+
+ <body>
+  <div class="center2">
+   <input id="base" type="text" maxlength=1 value="2">
+   <input id="aaa" maxlength=20 value="1">
+  </div>
+  <br>
+  <div style="text-align:center">
+   <button onclick="f()" class="button">计算</button>
+  </div>
+  <br>
+  <div class="result_box">
+   <input id="digit" readonly="true">
+   <br>
+   <input id="time" readonly="true" style="margin:0px">
+   <br>
+   <textarea id="result" readonly="true"></textarea>
+  </div>
+
+<script>
+let ArrayOfZero = ['',
+                   '0',
+                   '00',
+                   '000',
+'0000','00000','000000','0000000','00000000','000000000','0000000000'];
+
+function f(){
+  var v = document.getElementById( "aaa" ).value,
+      bs = document.getElementById( "base" ).value,
+      res = document.getElementById( "result" ),
+      p = document.getElementById( "digit" ),
+      t = document.getElementById( "time" ),
+      t0 = new Date().getTime(),
+      STATE = 0;
+      
+  /*
+    v:     指数
+    bs:    底数
+    res:   结果
+    p:     位数
+    t:     时间对象
+    t0:    初始时间
+    STATE: 状态
+  */
+
+  //指数检测
+  v = Number( v );
+  if( isNaN( v ) ){
+    STATE = 1;
+    v = 0;
+  }
+  v < 0 ? v = 0 : v = v;
+  v = Math.floor( v );
+
+  //底数检测
+  bs = Number( bs );
+  if( isNaN( bs ) ){
+    STATE = 2;
+    bs = 0;
+  }
+  bs = Math.floor( bs );
+  bs = Math.max( 1, Math.min(9, bs) );
+
+  //开始迭代
+  if(STATE == 0){
+    var Result = run( v, 8, bs );
+    t.value = '用时: ' + (new Date().getTime() - t0) + ' ms';
+    p.value = "共 " + Result.length + ' 位';
+    res.style = "color:green";
+    res.innerHTML = Result;
+  } else {
+    if(STATE == 1){
+      t.value = '用时: ??? ms';
+      p.value = "共 ??? 位";
+      res.style = "color:red";
+      res.innerHTML = '指数不可用';
+    }
+    if(STATE == 2){
+      t.value = '用时: ??? ms';
+      p.value = "共 ??? 位";
+      res.style = "color:red";
+      res.innerHTML = '底数不可用';
+    }
+  }
+}
+
+/*
+  迭代函数
+  T:    指数
+  N:    一次运算多少位数字(不能超过10)
+  Base: 底数
+*/
+
+function run(T, N, Base){
+  var b = '1',
+      r,
+      result = [],
+      n_ = Math.pow(10, N);
+  /*
+    b:      初始值
+    r:      临时结果
+    result: 结果数组
+    n_:     10的N次方，用于取余及进位
+  */
+
+  for(let j = 0;j < T;j++){
+    result = [ 0 ];
+    for(let i = b.length - 1,k = 0;i >= 0;i-=N,k++){
+      //截取数字并运算
+      r = Number(b.slice(Math.max(0, i - N + 1 ), i + 1)) * Base;
+      //非进位数字储存
+      result[k] += r % n_;
+      while(result[k].toString().length < N){
+        //补0，防止前面的取余把0丢掉导致出错
+        result[k] = '0' + result[k];
+      }
+      //进位（如果有），加判断为了防止数组越来越长
+      if(Math.floor(r / n_) != 0){
+        result[k + 1] = Math.floor(r / n_);
+      } else {
+        result[k + 1] = 0;
+      }
+      if(result[result.length - 1] == 0){
+        //把数组后面的0去掉，防止越来越长
+        result.pop();
+      }
+    }
+    b = result.reverse().join('');
+  }
+
+  return b;
+}
+</script>
+
+</body>
+</html>
