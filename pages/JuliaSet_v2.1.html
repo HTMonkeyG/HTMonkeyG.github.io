@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" 
+   content="width=device-width, 
+   initial-scale=1.0, 
+   maximum-scale=1.0,
+   minimum-scale=1.0, 
+   user-scalable=no">
+<script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js">
+</script>
+
+<title>Fractal</title>
+
+<script>
+/*
+  头文件
+  初始化脚本
+*/
+
+var maxcount = 100;
+var CR=-0.75;
+var CI=0.3;
+var Range = [-1.8, 1.8, -1.8, 1.8];
+
+function freq(C, Z, M){
+  var X = Z[0], Y = Z[1];
+  var X_ = X, Y_ = Y;
+  var F = 0, L = 0;
+  for(let i = 0; i < M; i++){
+    X_ = (X * X) - (Y * Y) + C[0];
+    Y_ = (2 * X * Y) + C[1];
+    X = X_;
+    Y = Y_;
+    L = Math.sqrt((X_ * X_) + (Y_ * Y_));
+    if(L <= 2){
+      F++;
+    }
+    if(L > 4){
+      break;
+    }
+  }
+  return F;
+}
+
+function map_(input,inmin,inmax,outmin,outmax){
+  let dX   =    inmax - inmin;
+  let dY   =  outmax - outmin;
+  let k    =       dY / dX;
+  let b    = outmin - inmin * k;
+  return k * input + b;
+}
+
+function Init(){
+  var Width = Number(document.getElementById('widthB').value);
+  CV.width = Width;
+  CV.height = Width;
+
+  W = CV.width, H = CV.height;
+  CTX = CV.getContext('2d');
+  CTX.fillStyle = "#000000";
+  CTX.fillRect(0, 0, W, H);
+
+  CR = Number(document.getElementById('CinR').value);
+  CI = Number(document.getElementById('CinI').value);
+  maxcount = Number(document.getElementById('Count').value);
+}
+
+function ParseColor(Color){
+  var Out = [];
+  Color = Color.split('');
+  Out[0] = Number('0x'+Color[1]+Color[2]);
+  Out[1] = Number('0x'+Color[3]+Color[4]);
+  Out[2] = Number('0x'+Color[5]+Color[6]);
+  return Out;
+}
+
+$(document).ready(() => {
+  $('.main').show();
+  $('.settings').hide();
+  $('.info').hide();
+
+  $('#_1').click(() => {
+    $('.main').show();
+    $('.settings').hide();
+    $('.info').hide();
+
+    $('#_1').addClass('active');
+    $('#_2,#_3').removeClass('active');
+  });
+
+  $('#_2').click(() => {
+    $('.main').hide();
+    $('.settings').show();
+    $('.info').hide();
+
+    $('#_2').addClass('active');
+    $('#_1,#_3').removeClass('active');
+  });
+
+  $('#_3').click(() => {
+    $('.main').hide();
+    $('.settings').hide();
+    $('.info').show();
+
+    $('#_3').addClass('active');
+    $('#_1,#_2').removeClass('active');
+  });
+
+  $('#rand').click(() => {
+    $('#CinR').val(Math.random());
+    $('#CinI').val(Math.random());
+  });
+});
+
+</script>
+
+<style>
+body {
+  margin: 0;
+}
+
+canvas {
+  display: none;
+}
+
+img {
+  width: 100%;
+  height: 100%;
+}
+
+.info {
+  font-size:80%;
+  text-align:center;
+}
+
+#CinR {
+  border-style: solid;
+  border-width: 0px 0px 2px 0px;
+  border-color: rgb(0,0,0);
+  width: 30%;
+  font-size: 20px;
+}
+
+#CinI {
+  border-style: solid;
+  border-width: 0px 0px 2px 0px;
+  border-color: rgb(0,0,0);
+  width: 30%;
+  font-size: 20px;
+}
+
+#rand {
+  border-style: none;
+  background-color: #cccccc;
+  width: 50%;
+  height: 30px;
+  margin-top: 10px;
+}
+
+input{
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #d1b082;
+  position: fixed;
+  top: 0;
+  width: 100%;
+}
+
+.nav li {
+  float: left;
+  width: 33.33%;
+}
+
+.nav li a {
+  display: block;
+  color: white;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+.nav li a:hover {
+  background-color: #c1a072;
+}
+
+.active {
+  background-color: #c1a072;
+  border-style: solid;
+  border-width: 3px 0px 0px 0px;
+  border-color: #f0f077;
+}
+</style>
+
+</head>
+
+<body bgcolor="#dddddd">
+
+<ul class="nav">
+ <li><a id="_1" class="active">主页</a></li>
+ <li><a id="_2">设置</a></li>
+ <li><a id="_3">关于</a></li>
+</ul>
+
+<div style="padding-top:20px;margin-top:30px;">
+
+<h1 style="text-align:center">Julia集合查看器</h1>
+<h2 style="text-align:center">Zₐ₊₁=Zₐ²+C</h2>
+
+<div class="main">
+ <canvas id="C" width="1000" height="1000">
+ </canvas>
+ <img id="result" onclick="main()" width="500" height="500">
+ </img>
+ <div style="text-align:center;margin:0px;font-size:20px;">
+  <input type="number" id="CinR" value="0"> + 
+  <input type="number" id="CinI" value="0"> i 
+  <br>
+  <input type="button" value="random" id="rand">
+ </div>
+</div>
+
+<div class="settings">
+保存图像大小(正方形):<input type="text" id="widthB" value="1000">
+<br>
+迭代次数:<input type="text" id="Count" value="100">
+<div>
+<input type="button" onclick="ShowSettings()" value="显示高级设置" id="setbutton">
+<input type="color" id="basecolor" value="#00000f">
+<input type="color" id="maxcolor" value="#00b9ff">
+</div>
+</div>
+
+<div class="info">
+<h1 style="font-size:70%;color:#FF0000">代码by HTMonkeyG</h1>
+此文件使用说明：
+<br>
+输入参数，然后点击上方大图进行渲染。
+<br>
+可能需要等待一段时间才会有结果。
+<br>
+参数说明：
+<br>
+保存图像大小影响长按图片保存之后的图片大小及精度。
+<br>
+复数C影响整个图像的样子。
+<br>
+迭代次数影响图片的清晰度。
+<br>
+图片大小及迭代次数不宜设置偏离默认值过多。
+<br>
+图片大小不宜超过7500，
+<br>
+迭代次数不宜超过250。
+<br>
+<a href="https://www.baidu.com/s?word=Julia集合" target="_blank">更多信息</a>
+</div>
+
+<script>
+/*
+  主函数
+*/
+
+//变量定义
+var CV = document.getElementById('C');
+var W = CV.width, H = CV.height;
+var CTX = CV.getContext('2d');
+
+//初始化，黑窗窗
+CTX.fillStyle = "#000000";
+CTX.fillRect(0, 0, W, H);
+
+//把canvas里的东西转成图片，允许用户保存
+//主函数内的同一段代码作用相同
+var R = CV.toDataURL('image/png');  
+document.getElementById('result').src = R;
+
+//主函数
+function main(){
+  
+  Init();
+
+  //得到图像信息
+  IMG = CTX.getImageData(0, 0, W, H);
+
+  //迭代
+  for(var y = 0; y < H; y++) {
+    for(var x = 0; x < W; x++) {
+      var i = (W * y + x) << 2;
+
+      var x_ = map_(x,0,W,Range[0],Range[1]);
+      var y_ = map_(y,0,H,Range[2],Range[3]);
+
+      var f = freq([CR,CI],[x_,y_],maxcount);
+      IMG.data[i]=0;
+      IMG.data[i+1]=map_(f,0,maxcount,0,185);
+      IMG.data[i+2]=map_(f,0,maxcount,15,255);
+    }
+  }
+
+  //写入图像信息
+  CTX.putImageData(IMG, 0, 0);
+
+  var R = CV.toDataURL('image/png');  
+  document.getElementById('result').src = R;
+}
+
+</script>
+</body>
+</html>
