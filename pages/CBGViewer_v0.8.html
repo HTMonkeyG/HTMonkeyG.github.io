@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+<meta charset="utf-8">
+<style>
+.display {
+  width: 100%;
+  text-align: center;
+  margin: 0px;
+  padding: 0px;
+}
+
+body{
+  background: #000000;
+  margin: 0px;
+}
+
+canvas{
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.nav {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #555555;
+}
+
+.nav li {
+  float: left;
+}
+
+.nav li a {
+  display: block;
+  color: white;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+.nav li a:hover {
+  background-color: #333333;
+}
+
+.setCB {
+  display: block;
+  position: fixed;
+  color: white;
+}
+
+.hotbar {
+  display: block;
+  position: fixed;
+  bottom: 3px;
+  width: 100%;
+  margin: 0;
+  paddings: 0;
+  color: white;
+  text-align: center;
+}
+
+.hotbar img {
+  margin: 0;
+  paddings: 0;
+}
+
+.setCB-left {
+  position: absolute;
+  top: 23px;
+  left: 8px;
+  width:100;
+  heigt:100;
+  border-color: #ffffff;
+  border-style: solid;
+  border-width: 1px;
+}
+</style>
+<script>
+/* Basic Functions */
+
+/* 检测客户端类型 */
+
+function getSystemType(){
+  var system ={};
+  var p = navigator.platform;
+  
+  system.win = p.indexOf("Win") == 0;
+  system.mac = p.indexOf("Mac") == 0;
+  system.x11 = (p == "X11") || (p.indexOf("Linux") == 0);
+
+  if(system.win||system.mac||system.xll){
+    return 'PC';
+  }else{
+    return 'PE';
+  }
+}
+
+/* 获取鼠标 */
+
+function getMouse(ele, onStart, onMove, onEnd, onWheel){
+  var button = -1,
+      isMove = false,
+      startX, startY,
+      isDown = false,
+      x, y;
+
+  ele.onmousedown = function(e) {
+    button = e.button;
+    isDown = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    onStart(e.clientX, e.clientY, e.button);
+  }
+
+  ele.onmousemove = function(e) {
+    x = e.clientX;
+    y = e.clientY;
+    
+    let __SIZE__ = getWindowSize();
+    
+    if(Math.abs(x - startX) >= Math.max(__SIZE__[0], __SIZE__[1]) / 50 && 
+       Math.abs(y - startY) >= Math.max(__SIZE__[0], __SIZE__[1]) / 50) isMove = true;
+  
+    onMove(e.clientX, e.clientY, isDown, button);
+  }
+    
+  ele.onmouseup = function(e) {
+    onEnd(x, y, isMove, button);
+    isMove = false;
+    isDown = false;
+    button = -1;
+  }
+  
+  ele.oncontextmenu = function(e){
+    e.preventDefault();
+  }
+  
+  window.onmousewheel = function(e) {
+    var dir, val;
+  
+    if (e.wheelDelta) {
+      val = e.wheelDelta; 
+    } else if (e.detail) {
+      val = e.detail; 
+    }
+    
+    val < 0 ? dir = -1 : dir = 1;
+    
+    onWheel(dir);
+  }
+} 
+
+/* 获取触摸 */
+
+function getTouch(ele, onStart, onMove, onEnd){
+  var isMove = false;
+  var oldX = oldY = 0;
+  var maxPoint = 0;
+  var oldTouch = {};
+
+  ele.addEventListener('touchstart', (e) => {
+    maxPoint = Math.max(maxPoint, e.targetTouches.length);
+    oldTouch = e.targetTouches;
+
+    if(e.targetTouches.length >= 1){
+      onStart(e.targetTouches);
+    }
+  }, false);
+  
+  ele.addEventListener('touchmove', (e) => {
+    if(e.targetTouches.length >= 1){
+      isMove = true;
+      onMove(e.targetTouches, maxPoint);
+    }
+
+    e.preventDefault();
+  });
+  
+  ele.addEventListener('touchend', function (e) {
+    onEnd(e.targetTouches, isMove, maxPoint, oldTouch);
+    isMove = false;
+
+    if(e.targetTouches.length == 0)
+      maxPoint = 0;
+
+    oldTouch = e.targetTouches;
+  }, false);
+
+  window.addEventListener('touchmove', function (e){
+    e.preventDefault();
+  }, false);
+}
+
+/* 获取键盘按钮 */
+
+function getKey(onPress, onHold, onRelease){
+  window.onkeypress = function(e){
+    onPress(String.fromCharCode(e.keyCode), e.ctrlKey, e.altKey, e.shiftKey);
+  }
+  
+  window.onkeydown = function(e){
+    onHold(String.fromCharCode(e.keyCode), e.ctrlKey, e.altKey, e.shiftKey);
+  }
+  
+  window.onkeyup = function(e){
+    onRelease(String.fromCharCode(e.keyCode), e.ctrlKey, e.altKey, e.shiftKey);
+  }
+}
+
+/* 获取窗口大小 */
+
+function getWindowSize(){
+  var winWidth, winHeight;
+
+  if(window.innerWidth){
+    winWidth = window.innerWidth;
+  }else if((document.body) && (document.body.clientWidth)){
+    winWidth = document.body.clientWidth;
+  }
+    
+  if(window.innerHeight){
+    winHeight = window.innerHeight;
+  }else if((document.body) && (document.body.clientHeight)){
+    winHeight = document.body.clientHeight;
+  }
+  
+  if(document.documentElement && document.documentElement.clientHeight && document.documentElement.clientWidth){
+    winHeight = document.documentElement.clientHeight;
+    winWidth = document.documentElement.clientWidth;
+  }
+  
+  return [winWidth, winHeight];
+}
+
+function typeToNum(t){
+  var n = 0;
+  switch(t){
+    case 'CB':
+      n = 0;
+      break;
+    case 'CBC':
+      n = 1;
+      break;
+    case 'CCB':
+      n = 2;
+      break;
+    case 'CCBC':
+      n = 3;
+      break;
+    case 'RCB':
+      n = 4;
+      break;
+    case 'RCBC':
+      n = 5;
+      break;
+  }
+  
+  return n;
+}
+
+/* Basic Variables */
+
+var testCBG = {
+  name: "Test",
+  author: "HTMonkeyG",
+  description: "Test",
+  CBs: [
+    [
+      {
+        Pos: [0, 0],
+        Dir: 0,
+        Type: "RCB",
+        Name: "a",
+        isConditional: false,
+        isRedstone: true,
+        isExeOnFirstTk: true,
+        delay: 0,
+        Cmd: "say a"
+      },
+      {
+        Pos: [0, -1],
+        Dir: 0,
+        Type: "CCB",
+        Name: "b",
+        isConditional: false,
+        isRedstone: false,
+        isExeOnFirstTk: true,
+        delay: 0,
+        Cmd: "say b"
+      },
+      {
+        Pos: [0, -2],
+        Dir: 0,
+        Type: "CCB",
+        Name: "c",
+        isConditional: false,
+        isRedstone: false,
+        isExeOnFirstTk: true,
+        delay: 0,
+        Cmd: "say c"
+      }
+    ]
+  ]
+};
+</script>
+</head>
+<body>
+
+ <div style="display:none">
+  <canvas width=16 height=16 id="imgDataProducer"></canvas>
+  <canvas width=16 height=16 id="setCBBgImg"></canvas>
+  <img id="imgCB" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAFo9M/3AAAABGdBTUEAALGPC/xhBQAAAAZiS0dEAP8A/wD/oL2nkwAAAl9JREFUOMuFkltIk3EYxn/fWh6JDhNvmgrNw1ziKjEoZuHsImMwGAmS3nXT4SIvgiBEKqmbCR3EiLwIdrELB8asLoQYUYIhSNLKA9RsuG9jY5vfGjvImuti7Esd2nP3/p+Hh//7vI8wO2TOASgASv9oEe5dPp0DEObnvucmJhz5F7OlB19FK+rkV5QASbWRmak3AAgFlwIUZVoDo3MRRucilGkNeUWmfJ2TK7V8q42jLNMaWE6peRdZoVdbmVdMLwYwW3pwTjpYWgvTXFMlz4qCudXmpK1/mONRgbb+Yaw2J/IKADfvPiUx/oRGfSuvlx5S03Jhu6DC52K5PEJ5TZLa+TS9pyr/7eEWJfS6JjZjQQC2zkq3KNHeZQIgEvLhCSe2zcIXu1VOYl+zmXg8ToXPBUBWCqJIL88AUNJiwetdJRoNs5BSk5WCZFO/858cGH6Mx/NDzrNKdYT7r6bYjAVRuEWJo3XH2IkDqmoSGxmU7V0mPticJBJJgqEQfjEgiw7V6RDe37mUU+k7yUpB/OIaqViYxrMX5T/I93SLEv5YSr6BQVNFZel+2W03Xnh59XyuQOzEtaERnttd3Lhi5MWD20W8c9KBQq9rKiKsNiclLRYGR2z4/T4GR2wk1Ua5AIWMiyo5YP/MuOMTXu8qu8Gz+gv72BDPrpvzMW/dESCTybAXCinHQ75829yixPRigPYuE5r6BtLpNP+Dpr4Blb6T6cUASr2uCf/sAgB93R2MPboFQG4jiWdNpPrwQULrMTT1DbJBX3dHcQaJjQwzP8OYjOd46/pI95kTcr334v8CEiQ2YxgFqKQAAAAASUVORK5CYII="></img>
+  <img id="imgCBC" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAFo9M/3AAAABGdBTUEAALGPC/xhBQAAAAZiS0dEAP8A/wD/oL2nkwAAAnNJREFUOMt9kl1I02EYxX/b/I4wp0TQpjAX6hwtkaLIipZQgjAaDaS8qovKLvQiuggRS6iLCZFi2BfBLhY4GCyCimJZrgxRkmZfUPvIbab4MR1ukznXxZ/91UTP3fOew8t5znkkg22GFIAUIHu5HEn7mQMpAMnI0NdUX59NeDEYTQTy9qKIfiEDIKrQ8+b2eXIqTyNJ/5KGNKe8hu6hGbqHZsgprxEUidw5qn4WM1YcERS971a4+Ne3qnj1bQKD0YTDbuP7+DQVyiJxlqY/N1scVDd2UDkrobqxA7PFgbgCwJXrdwHIb7oGgFJbCyD4BsgLOHltt1GlLGDkwxwNRhMOH4IHdzCMTlPGyvwkAGvnDHcwzP4T9QDMTAXwTC+umyWfrWYxCVmFgUgkQl7ACUAyPIk0/sMFQJbWiN/vZXZ2mtGYgmR4kmRsQdiipeMOHs8vMc+iQjk3njxjZX4SqTsYZneJCgCXaxCVSg3A9sKdLC4lkKYNebw+1LFhPt5vRi4vAmBHiQaZSZ3ZXnvyFIrlP6QSMWRLC+zKl3GwpIBkbGG1T3cwTGg+JnZQU1rEtuxM0ddmvOTBhWOpNPE/LrV1cs/qpOmsnt6bVzfwDrsNqU5TtoEwWxxkaY20dloIhQK0dlqIKvTiAaQzBtafZIv1Ew9tA/j9XjaDx+vD2tNG12WDEPPaHQESiQRbIRScACAyFRCubW04/cEk8Xhc7Gz45WPycnOJxmJ0WfvFskvVeyjUHcdht5Gh05QRGhwF4FzdEXpuNQPQcLiCuFKOVqVkzDOO7+0jnr4YEHUbMlhcSuD6PU29/ijPne+pO7RPPO+t+H+Gwjyi9WX60gAAAABJRU5ErkJggg=="></img>
+  <img id="imgCCB" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAFo9M/3AAAABGdBTUEAALGPC/xhBQAAAAZiS0dEAP8A/wD/oL2nkwAAAl5JREFUOMuFkk9IkwEYxn/fWCgVuekKzJbJprA/HjSDPGgQOeiSimgHu5VRhwoK9CIuDwZ5ELaSSuhQtoslEyuEDsKoQ6CEh6QvMz+nbmuyudXY2MeHrcPY55+hPbf3fV4e3vd5H6F78kkGQAOgc40hXLp3NdtxXr6LRTBmO20trRRHD7BRoqAFMGdKmfz0FgAhp5KDxqY3Mjc6xdzoFDa9Ec18bJXe2jjjh44wH1tFa9Mb+XnsJu+j37HpjVkN0TdLW0sr4xNeAgsSZVUVaq3JiXvcI3Q1dDBcoKOroQOPewT1BADnLSdHXz1jOhbD+22AmvLanQOLQogH5XpWOx1EIpVYm+u27giKEtZqO3ElCcD2WhsUJZrqGwEIB6JEV0I7auHFx3eqEzWHq0gkEiwKIQBicjJrBEBdkQW/X2JjI8LfhQQxOUlKkbNLDnT3srS0qPppKCnm5eAwcSWJJihKnDpxkt0wFOmQU2m0TfWNeGZEkskU4fV1goGQOlRhOI72S+AHnbev80tOsraZJF4o0GA/TalsIaXIW/8MihJ/wlH1BxVn7BQcLFTV9uKFK4PdmRyxG/13enj9dIz2Gx04XQ/z+PEJLxprtT2P8LhHqCuy4OobIhhcw9U3hDlTqgYg53FeJN/cf8zEcy9+v8ReWJKWcY26uTbQk7V5+40AiqKwH3Iuh39Hs2kLihKib5am+kbMJhPpdJr/wWwyUVtWieibRWuttvM57APA0d5M/6N+ANKbCmvLK+gMJcQjUcwmkyrgaG/O90BOpZFmvnL+ooPpqQ+cvXBOjfd+/D8AnDC2mu4/AQAAAABJRU5ErkJggg=="></img>
+  <img id="imgCCBC" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAFo9M/3AAAABGdBTUEAALGPC/xhBQAAAAZiS0dEAP8A/wD/oL2nkwAAAm9JREFUOMt9klFIUwEUhr87F4ZpblMIs6XTJW0qpCkVYUGk0ksqoj3UWwm9RFCgL+IU8kEfjGlSKD2USTAbrpAGPkSiUWGED0kXEa/LnCyaM9fWrheyh8u9WaL/2zn/4fCf/z9C84v7mwAGAJPbg3Dx9lW147p0C4dgVTv1tXVYwntYzVAwAtg3s3CNdXHc5ETQtmgwFJqtzAz5mRnyU2i2YpiNLNFauoZ3335mI0sYC81W7nw0AetcNlvVHeLEB+pr6/D6Rlmek8gusOm1QVs+3DtAU0Uj/ckmmioaGe4dQD8BwHXDBcD709UAlOSU/jswL6wwOOlBTF9lcNKDs6YMQNUQFCWcxUWsKTEAttbGoChReeoMAKHlMOEvK//UwqPJMd2JktQCotEo88IKABE5phoBUJbuIBCQWF39zu+5KBE5RlyRVZGdza0sLMzrfmZmWHjc3c+aEsMQFCVyDx0GYGrqLXl5dnUo3YQcT2DQBC1Ii4TzBe6+eYLFkgmALfMgSTnV5e3VlVX8ykhiQ5ZJKBukHUjDeuwocUX+m2dQlFgPhfUMbOVFJKfs1XXtxAtXups3NeJ/dNxsYeSBh4brjbjcXdt4r28Ug7O4aBsx3DtAWboDd1sPweBX3G092Dez9AfQPNaj1JrP2u/hezhKICCxExakRdxDvVzrbFFt3nojgKIo7Ibgsppy6EcYQP0VzYNv0yKJRELPbGz6JcmpKcg/43j6nuph2/PzKc0+gtc3itFZXMS70AQAVQ01dPR1AHCippKstVxsjgKkz3P4xdeMjzzX57Z5IMcTSNOfOHehilf+cU6eP6u/9278Hz/WNl7FkPJCAAAAAElFTkSuQmCC"></img>
+  <img id="imgRCB" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAFo9M/3AAAABGdBTUEAALGPC/xhBQAAAAZiS0dEAP8A/wD/oL2nkwAAAmNJREFUOMuFkk9I03EYxj9bKwaSmQ4N81LblHmxQWs5ZmYIs1oMUk9Sh+hQehGqi0R/JPrD+kPpIYsk6DIcBtOChA4WI7OSBUNTqp+N5tZ+bLZa0+HY1mHslzq05/Z+n5fn+77P+8jabWMZADnAgfLHyJr2XMoAyCbeTWYGBpzZl+ZWG9u0Ij8+l6IAqDamGRoaA0CWU8lBrjcrmYn0MBPpQW9WovC4E1w87KdgOMEjdwKF3qzka/Fppk0z6MuUWQ0hOEJzq41Bp4tA+BPlKp1Uy3PiDpedjq5aWjZ8oKOrFofLjrQCQPfVM3jOtWNtbWEy5WT33sqVDVPjct5sPcbdCROjNyrQlNn+7SFGveiqaoiE0gAsrxVi1IvFagAg6I8QjQsratlDu0dywthYQCwWY2o8+3M4lELucScAMFkK8flmmZ8PoyieJhxKsfA7lR3y2p1OBOGL5KeqpBjH0GUioTRyMeplx87trIaqdDNLyTgKi9WAwzVKPL5ASBQJzAWlJnV1EbKTh15mjA0lhEMp5r4H+BleZH9TpTSDdE8x6uXPYkC6QYXKzKaNBZLaWryspf5BJkesxpWbp3g63M/RIyc4f/Z+Hj/odCHXVdXkEQ6XHZOlkN6+bgIBP7193VQb01IAch7nRfL5206GXzzB55tlLQiz37h9vZ/jtntZm5fvCJBMJlkPOZeD/lg2bWLUixAcwWI1oNGqSSQS/A8arRpjQwlCcASFrqqG9x8DADTWtXGh6xYAiYUM/jmBoi2lRH+JaLRqSaCxri3fg6VkHH/YTf0+K69eP8Ow66AU7/X4vzMONHLE5o+eAAAAAElFTkSuQmCC"></img>
+  <img id="imgRCBC" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAFo9M/3AAAABGdBTUEAALGPC/xhBQAAAAZiS0dEAP8A/wD/oL2nkwAAAnxJREFUOMt9kltIk3EYxn/7nLEYnuZQMS/KQzIJbJV5YCWFoZExSAdC0EVXoQRCESRRKlHBOlB6kUVSRDRcBlM7QRcdBssyLJamFFNBt1zbnC51OLZ18bUvTey5e//Pn5fnfZ5HVq+3RQEEgL2Zd5FV7WyOAsg+vh+KdnWZxZcag56MPDc/vqUhBygojnD6+FNK96Ugi22JQdDqFIx62xj1tqHVKZAPWoOcOzCJsjfIHWsQuVanoMWSBQLU6RTiDofrBTUGPd1mC07PVzLVGmkWYstNFiMNTaXUxg3Q0FSKyWJEOgGg9cIJAJLqTwGwo2QzgKgbYLhfoNtsIz1Fy7MZGzUGPZ+xiBrcfjua/EK80xEAls9yt99OZXURAK5JL/55x4pZdts4KDlRXKEkEAgw3C9K80yHEQatQQDKKhOZmBjD5/MgV43gmQ6zMBcWr7h4rRGH47vkpzpVhamnBe90BMHtt7MpewMAVquN7Oxc8VNaAkuheYSYIMfYONHZbdxrG0KlUgOQU5BMXHq8obmqqoJZVwa+nwHcU4so16vJSClhYS78N0+3386vRaeUQZZax7p4paRrLV5WW34rGiP+xfnLx3jc28mhg0c5c/LmKr7bbEHQ5BeuIkwWI2WVibR3tOJ0TtLe0UpBcUQqQMxjYGUln7xrpPf5fSYmxlgLjrFxrl7q5Ij+hmjz8hsBQqEQ/4NzyvWnBgGxbcvNmQm/IhgMSpn1PRogWZWA3xegq+e6FHZuXg7Fe1LpNluQa/IL+fDJCUDFrsOcbboCwHZNHalJM2zM3MJ4+As9D0d4+faB9G+VB0uheSY9Vsp3V/P6TR9FW/dL9f4f/xsbMDoYWRVBwAAAAABJRU5ErkJggg=="></img>
+  <img id="imgBg1" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAhCAYAAADUIPtUAAAAAklEQVR4AewaftIAAAC9SURBVK3BwXGDMBCG0W//UJGacAU6qQwaSCrQhSsVqA+2LEUZx2P7EALMvme865xj/DKe+sAZZsZgDB/c9YGzbrcb67p+Al8G9IEHd+eoWis/WmuIF+7OVSKICCKCiCAiiAgigoggIogIIoKIICKICCKCiCAiyMSOeZ55SClRSuEv4h/ubu5uy7KwRwSZ2JFSYtu2zgETO0opuDtHiCAiiLio1sor467nnLmqtYbx1HPOnNVaYzDjXec8Y/gGSPg0olRZzQgAAAAASUVORK5CYII="></img>
+ </div>
+
+ <ul class="nav">
+  <li class="file">
+   <a>文件</a>
+  </li>
+  <li>
+   <a>编辑</a>
+  </li>
+  <li>
+   <a>设置</a>
+  </li>
+  <li>
+   <a>关于</a>
+  </li>
+ </ul>
+
+ <div class="display">
+  <canvas id="canvas">
+   你的浏览器不支持这个程序
+  </canvas>
+ </div>
+
+ <div class="setCB" id="setCB">
+  <div class="setCB-left">
+   <input type="text" id="CBName">
+  </div>
+  <div class="setCB-right">
+  
+  </div>
+ </div>
+
+ <div class="hotbar">
+  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAWCAYAAADAQbwGAAACf0lEQVQ4y62VTW7bShCEv+7hiCIpGshTgMgHynm892F8CG/fHbzyVitvuBGMp9ikyNHMvMWIpBgBCQKEG/30sFjVVd0UIPIXr+zl5QWA/X4PQNM0AOx2u+n7HwHu93uen5+nP8qypG1bAKy1nE4njDF47xefZVninJvq2+2Ww+FABlAUBU9PT//+6sl5Dn0PmYWzu60/PDx8N8aQNU3DMAwAfLuHzVoAOH5G7iqBKOQrSz84kAhReP8IfKllAVhVFW9vb+hut8N7D8xgAHeVEGIEifRuAImEGAkEvt6ZJb0oFxU52jQNZVlONWvMxFAlgYaYgmDVkGcZPobleUl17z0KzCYYgxoFQC8kVASVxKA9B1SX7MbzAMYY9LrovOfskvxtnd8aY0jyr65+cLRujrL+fJOPAaJMN46HP07L/I9c3n9ESitLhsbMMowoH/3cozJTep8My+2KiwA8gRAju39mJaqaAEeXWxfxIbJZCwbFGkMgYDWx692ANTNbFaEbegDqusY5t5Rc2yvHCLx/nlERinw1OT3GyxoDMRmWr+w0pjpOimoCGftl0CmX/eBQEYzowsBjm873/ZmqqubYiCxTv1kLyNz4Mbw+htmcKGzvMo6fcVI1mdK2LSFAvrJzL2Pgv1Pq7TgxaWEkpuHSkvyi4nw+471Py+E6UwnUYUTZrJOTY7CNKLkJ+BhQETbrq7WVZdR1fZvDfnBzHi9OXme0yIvbVXOZ5bZtbwHHOR5dve4ZQNd3vP+I028AJKKaoDKA7XbL4+Pj999t46qqcM5N6+54PHJ/f0/XdYQQZsCu6zgcDpNTY9CtTSY55xabelwmRVHw+vq6eKj87ZfU/8fHSrLxG7/VAAAAAElFTkSuQmCC" ><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAWCAYAAADAQbwGAAACf0lEQVQ4y62VTW7bShCEv+7hiCIpGshTgMgHynm892F8CG/fHbzyVitvuBGMp9ikyNHMvMWIpBgBCQKEG/30sFjVVd0UIPIXr+zl5QWA/X4PQNM0AOx2u+n7HwHu93uen5+nP8qypG1bAKy1nE4njDF47xefZVninJvq2+2Ww+FABlAUBU9PT//+6sl5Dn0PmYWzu60/PDx8N8aQNU3DMAwAfLuHzVoAOH5G7iqBKOQrSz84kAhReP8IfKllAVhVFW9vb+hut8N7D8xgAHeVEGIEifRuAImEGAkEvt6ZJb0oFxU52jQNZVlONWvMxFAlgYaYgmDVkGcZPobleUl17z0KzCYYgxoFQC8kVASVxKA9B1SX7MbzAMYY9LrovOfskvxtnd8aY0jyr65+cLRujrL+fJOPAaJMN46HP07L/I9c3n9ESitLhsbMMowoH/3cozJTep8My+2KiwA8gRAju39mJaqaAEeXWxfxIbJZCwbFGkMgYDWx692ANTNbFaEbegDqusY5t5Rc2yvHCLx/nlERinw1OT3GyxoDMRmWr+w0pjpOimoCGftl0CmX/eBQEYzowsBjm873/ZmqqubYiCxTv1kLyNz4Mbw+htmcKGzvMo6fcVI1mdK2LSFAvrJzL2Pgv1Pq7TgxaWEkpuHSkvyi4nw+471Py+E6UwnUYUTZrJOTY7CNKLkJ+BhQETbrq7WVZdR1fZvDfnBzHi9OXme0yIvbVXOZ5bZtbwHHOR5dve4ZQNd3vP+I028AJKKaoDKA7XbL4+Pj999t46qqcM5N6+54PHJ/f0/XdYQQZsCu6zgcDpNTY9CtTSY55xabelwmRVHw+vq6eKj87ZfU/8fHSrLxG7/VAAAAAElFTkSuQmCC" ><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAWCAYAAADAQbwGAAACf0lEQVQ4y62VTW7bShCEv+7hiCIpGshTgMgHynm892F8CG/fHbzyVitvuBGMp9ikyNHMvMWIpBgBCQKEG/30sFjVVd0UIPIXr+zl5QWA/X4PQNM0AOx2u+n7HwHu93uen5+nP8qypG1bAKy1nE4njDF47xefZVninJvq2+2Ww+FABlAUBU9PT//+6sl5Dn0PmYWzu60/PDx8N8aQNU3DMAwAfLuHzVoAOH5G7iqBKOQrSz84kAhReP8IfKllAVhVFW9vb+hut8N7D8xgAHeVEGIEifRuAImEGAkEvt6ZJb0oFxU52jQNZVlONWvMxFAlgYaYgmDVkGcZPobleUl17z0KzCYYgxoFQC8kVASVxKA9B1SX7MbzAMYY9LrovOfskvxtnd8aY0jyr65+cLRujrL+fJOPAaJMN46HP07L/I9c3n9ESitLhsbMMowoH/3cozJTep8My+2KiwA8gRAju39mJaqaAEeXWxfxIbJZCwbFGkMgYDWx692ANTNbFaEbegDqusY5t5Rc2yvHCLx/nlERinw1OT3GyxoDMRmWr+w0pjpOimoCGftl0CmX/eBQEYzowsBjm873/ZmqqubYiCxTv1kLyNz4Mbw+htmcKGzvMo6fcVI1mdK2LSFAvrJzL2Pgv1Pq7TgxaWEkpuHSkvyi4nw+471Py+E6UwnUYUTZrJOTY7CNKLkJ+BhQETbrq7WVZdR1fZvDfnBzHi9OXme0yIvbVXOZ5bZtbwHHOR5dve4ZQNd3vP+I028AJKKaoDKA7XbL4+Pj999t46qqcM5N6+54PHJ/f0/XdYQQZsCu6zgcDpNTY9CtTSY55xabelwmRVHw+vq6eKj87ZfU/8fHSrLxG7/VAAAAAElFTkSuQmCC" >
+ </div>
+
+<script>
+  /* 初始化部分 */
+  /* 基础变量 */
+  var Disp = document.getElementById('display');
+  var C = [ document.getElementById("canvas"),
+            document.getElementById("imgDataProducer"),
+            document.getElementById("setCBBgImg") ];
+  var CBTexture = [
+    document.getElementById("imgCB"),
+    document.getElementById("imgCBC"),
+    document.getElementById("imgCCB"),
+    document.getElementById("imgCCBC"),
+    document.getElementById("imgRCB"),
+    document.getElementById("imgRCBC")
+  ];
+  var sCBDiv = document.getElementById("setCB");
+  var CBName = document.getElementById("CBName");
+  var setCBTexture = [
+    document.getElementById("imgBg1")
+  ];
+  var CTX = [ C[0].getContext("2d"),
+              C[1].getContext("2d"),
+              C[2].getContext("2d") ];
+  var Anim = window.requestAnimationFrame ||
+             window.webkitRequestAnimationFrame ||
+             window.mozRequestAnimationFrame ||
+             window.oRequestAnimationFrame ||
+             window.msRequestAnimationFrame ||
+             function (callback) {
+               window.setTimeout(callback, 1000 / 60);
+             };
+  var mouseX, mouseY, touchX, touchY, mainX = 0, mainY = 0;
+  var dist, oldDist = 0;
+  var oldX = 0, oldY = 0;
+  var isMouseDown = false;
+  var size = 10;
+  var isHighlight = false;
+  var highlightPos = [ 0, 0 ];
+  
+  setup();
+  function setup(){
+    var __SIZE__ = getWindowSize();
+    
+    mainX = __SIZE__[0] / 2;
+    mainY = __SIZE__[1] / 2;
+  }
+</script>
+
+<script>
+
+  /* 主绘图函数 */
+  Anim(draw);
+  function draw(){
+    var __SIZE__ = getWindowSize();
+    
+    C[0].width = __SIZE__[0];
+    C[0].height = __SIZE__[1];
+    C[0].style.width = __SIZE__[0];
+    C[0].style.height = __SIZE__[1];
+    C[0].maxSize = Math.max(C[0].width, C[0].height);
+    
+    CTX[0].fillStyle = '#ffffff';
+    
+    updateSetCBBg();
+    updateSetCBDiv();
+    
+    for(let i=0;i<testCBG.CBs[0].length;i++){
+      drawCB(mainX + testCBG.CBs[0][i].Pos[0] * size * 16,
+        mainY + testCBG.CBs[0][i].Pos[1] * size * 16,
+        testCBG.CBs[0][i].Dir,
+        typeToNum(testCBG.CBs[0][i].Type),
+        size,
+        (testCBG.CBs[0][i].Pos[0] == highlightPos[0] && testCBG.CBs[0][i].Pos[1] == highlightPos[1] && isHighlight)
+      );
+    }
+    
+    Anim(draw);
+  }
+  
+  CTX[0].fillRGB = (r, g, b) => {
+    CTX[0].fillStyle = 'rgb('+r+','+g+','+b+')';
+  }
+
+  /* drawCB 
+     @param x number posX
+     @param y number posY
+     @param r number rotation in 90deg
+     @param t number type
+     @param s number scale
+     @param h bool highlight
+     @return void
+  */
+
+  function drawCB(x, y, r, t, s, h){
+    CTX[1].drawImage(CBTexture[t],0,0);
+    var Data = CTX[1].getImageData(0,0,16,16);
+    
+    CTX[0].translate(x, y);
+    CTX[0].rotate(r * Math.PI / 2);
+    let k = 0;
+    for(let i = -8;i < 8;i++){
+      for(let j = -8;j < 8;j++){
+        if(!h)
+          CTX[0].fillRGB(Data.data[ k ],
+                      Data.data[ k + 1 ],
+                      Data.data[ k + 2 ]);
+        if(h)
+          CTX[0].fillRGB(Math.min(Data.data[ k ] * 1.4, 255),
+                      Math.min(Data.data[ k + 1 ] * 1.4, 255),
+                      Math.min(Data.data[ k + 2 ] * 1.4, 255));
+        CTX[0].fillRect(j * s, i * s, Math.ceil(s), Math.ceil(s));
+        k += 4;
+      }
+    }
+    CTX[0].rotate(-r * Math.PI / 2);
+    CTX[0].translate(-x, -y);
+  }
+  
+  function updateSetCBBg(){
+    var __SIZE__ = getWindowSize();
+    var sCBSize;
+    
+    if(__SIZE__[0] * 0.4 > __SIZE__[1] * 0.75){
+      sCBSize = [ __SIZE__[1] * 1.40625, __SIZE__[1] * 0.75 ];
+    } else {
+      sCBSize = [ __SIZE__[0] * 0.75, __SIZE__[0] * 0.5 * 0.8 ];
+    }
+    
+    sCBDiv.style.width = sCBSize[0] + 'px';
+    sCBDiv.style.height = sCBSize[1] + 'px';
+    sCBDiv.style.top = __SIZE__[1] / 2 - sCBSize[1] / 2 + 'px';
+    sCBDiv.style.left = __SIZE__[0] / 2 - sCBSize[0] / 2 + 'px';
+    
+    C[2].width = sCBSize[0];
+    C[2].height = sCBSize[1];
+    
+    CTX[2].drawImage(setCBTexture[0],0,0);
+    var imgPart = [ CTX[2].getImageData(0,0,8,23),
+                    CTX[2].getImageData(10,0,8,23),
+                    CTX[2].getImageData(0,25,8,8),
+                    CTX[2].getImageData(10,25,8,8),
+                    CTX[2].getImageData(8,0,1,23),
+                    CTX[2].getImageData(0,23,8,1),
+                    CTX[2].getImageData(8,25,1,8),
+                    CTX[2].getImageData(10,23,8,1) ];
+    CTX[2].fillStyle = '#aaaaaa';
+    CTX[2].fillRect(8, 23, sCBSize[0] - 16, sCBSize[1] - 31);
+    
+    CTX[2].putImageData(imgPart[0], 0, 0);
+    CTX[2].putImageData(imgPart[1], sCBSize[0] - 8, 0);
+    CTX[2].putImageData(imgPart[2], 0, sCBSize[1] - 8);
+    CTX[2].putImageData(imgPart[3], sCBSize[0] - 8, sCBSize[1] - 8);
+    for(let x = 8;x < sCBSize[0] - 8;x++){
+      CTX[2].putImageData(imgPart[4], x, 0);
+      CTX[2].putImageData(imgPart[6], x, sCBSize[1] - 8);
+    }
+    
+    for(let y = 23;y < sCBSize[1] - 8;y++){
+      CTX[2].putImageData(imgPart[5], 0, y);
+      CTX[2].putImageData(imgPart[7], sCBSize[0] - 8, y);
+    }
+    
+    var url = C[2].toDataURL('image/png');
+    sCBDiv.style.backgroundImage = "url(" + url + ")";
+  }
+  
+  function updateSetCBDiv(){
+    if(isHighlight){
+      sCBDiv.style.display = "block";
+    }else{
+      sCBDiv.style.display = "none";
+    }
+  }
+</script>
+
+<script>
+  /* 交互部分 */
+
+  getMouse(C[0], (x, y, b) => {
+    oldX = x, oldY = y;
+    console.log(x,y);
+  },
+  (x, y, i, b) => {
+    //按住左键拖动
+    if(i && b == 0){
+      var dx = x - oldX, dy = y - oldY;
+
+      if(dx && dy){
+        mainX += dx;
+        mainY += dy;
+        
+        oldX = x, oldY = y;
+      }
+    }
+    
+  },
+  (x,y,i,b)=>{
+    if(b == 2 && !i){
+      isHighlight = false;
+      highlightPos = [ Math.round((x - mainX) / (size * 16)),
+                       Math.round((y - mainY) / (size * 16))];
+                       
+      for(let i = 0;i < testCBG.CBs[0].length;i++){
+        if(testCBG.CBs[0][i].Pos[0] == highlightPos[0] && testCBG.CBs[0][i].Pos[1] == highlightPos[1]){
+          CBName.value = testCBG.CBs[0][i].Name;
+          isHighlight = true;
+          break;
+        }
+      }
+    }
+  },
+  (d) => {
+    // 滑轮缩放
+    if(size >= 1 && d < 0)
+      size *= 0.8;
+    if(size <= C[0].maxSize / 75 && d > 0)
+      size *= 1.25;
+  });
+  
+  getTouch(C[0], (T)=>{
+    if(T.length == 1){
+      oldX = T[0].pageX, oldY = T[0].pageY;
+    }
+    if(T.length == 2){
+      oldDist = Math.sqrt( (T[0].pageX - T[1].pageX) * (T[0].pageX - T[1].pageX) + (T[0].pageY - T[1].pageY) * (T[0].pageY - T[1].pageY) );
+    }
+  },(T, mp) => {
+    isHighlight = false;
+    if(T.length == 1 && mp == 1){
+      // 单指移动
+      var dx = T[0].pageX - oldX, dy = T[0].pageY - oldY;
+      mainX += dx;
+      mainY += dy;
+      oldX = T[0].pageX, oldY = T[0].pageY;
+    } else if(T.length == 2 && mp == 2) {
+      // 双指缩放
+      oldX = T[0].pageX, oldY = T[0].pageY;
+      dist = Math.sqrt( (T[0].pageX - T[1].pageX) * (T[0].pageX - T[1].pageX) + (T[0].pageY - T[1].pageY) * (T[0].pageY - T[1].pageY) );
+      if(oldDist == 0) oldDist = dist;
+
+      var dDist = dist - oldDist;
+      dDist = dDist / (C[0].maxSize * 0.05);
+
+      var prev = size * (dDist * C[0].maxSize / 5500 + 1);
+
+      if((prev >= 1 && dDist < 0) || (prev <= C[0].maxSize / 65 && dDist > 0)){
+        size = prev;
+      } else {
+        dDist < 0 ? size = 1 : size = size;
+        dDist > 0 ? size = C[0].maxSize / 65 : size = size;
+      }
+      oldDist = dist;
+    }
+  },(T,i,mp,ot)=>{
+    if(mp == 1 && !i){
+      isHighlight = false;
+      highlightPos = [ Math.round((ot[0].pageX - mainX) / (size * 16)),
+                       Math.round((ot[0].pageY - mainY) / (size * 16))];
+                       
+      for(let i = 0;i < testCBG.CBs[0].length;i++){
+        if(testCBG.CBs[0][i].Pos[0] == highlightPos[0] && testCBG.CBs[0][i].Pos[1] == highlightPos[1]){
+          CBName.value = testCBG.CBs[0][i].Name;
+          isHighlight = true;
+          break;
+        }
+      }
+      
+      //if(isHighlight)
+    }
+    if(i){
+      
+    }
+  });
+  
+  CBName.onchange = () => {
+    for(let i = 0;i < testCBG.CBs[0].length;i++){
+      if(testCBG.CBs[0][i].Pos[0] == highlightPos[0] && testCBG.CBs[0][i].Pos[1] == highlightPos[1]){
+        testCBG.CBs[0][i].Name = CBName.value;
+        break;
+      }
+    }
+  };
+  
+  getKey(()=>{},()=>{},()=>{});
+  
+</script>
+</body>
+</html>

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta name="viewport" 
+   content="width=device-width, 
+   initial-scale=1.0, 
+   maximum-scale=1.0,
+   minimum-scale=1.0, 
+   user-scalable=no">
+  <title>Print CBG</title>
+  <meta charset="utf-8">
+  <style>
+   .fileDrop {
+     text-align: center;
+     padding: 40px 0;
+     border:2px dashed;
+     border-radius:25px;
+     border-color: #000000;
+   }
+
+   .fileInput {
+	    border: 2px solid;
+     border-radius: 5px;
+   }
+
+   #Analysis {
+     width: 100%;
+   }
+
+   .preview {
+     
+   }
+
+   .button {
+     padding: 3%;
+     text-align: center;
+   }
+
+   .ctrl {
+     display: block;
+     width: 100%;
+	    height: 50px;
+     border-style: outset;
+     background-color: #f3ff94;
+     border-color: #f0fc91 #c1a072 #c1a072 #f0fc91;
+   }
+
+   canvas {
+     width: 100%;
+   }
+   
+   body {
+
+   }
+
+   #result {
+     width: 100%;
+     background-color: #f7ffb9;
+     border-style: solid;
+     border-color: #c1a072;
+     font-size: 15px;
+     text-align: center;
+   }
+
+   .text1 {
+     width: 100%;
+     height: 20px;
+     background-color: #f7ffb9;
+     border-style: solid;
+     border-width: 2px;
+     border-color: #c1a072;
+     font-size: 15px;
+     text-align: center;
+     margin: 0px 0px 10px 0px;
+   }
+
+   input {
+     -webkit-box-sizing: border-box;
+     -moz-box-sizing: border-box;
+     box-sizing: border-box;
+   }
+
+   button {
+     width: 100%;
+     padding: 3%;
+     display: block;
+     background-color: #f3ff94;
+     border-color: #f0fc91 #c1a072 #c1a072 #f0fc91;
+   }
+  </style>
+ </head>
+
+ <body style="background-color:#f7ffb9">
+  <div class="fileDrop">
+   <div>
+    拖入或选择文件<br><br>
+    <input type="file" id="CBG" style="display:none" onchange="update()">
+    <label for="CBG" class="fileInput">点击选择文件</label>
+    <p id="fileName"></p>
+   </div>
+  </div>
+
+  <div class="button">
+   <input type="button" id="Analysis" value="解析" onclick="parse()" >
+  </div>
+
+  <div class="preview">
+   <a id="download">点击下载</a>
+   <canvas id="canvas" width=512 height=64>
+   </canvas>
+  </div>
+
+  
+
+  <div class="about" style="text-align:center">
+   <h2>HTMG 制作</h2>
+  </div>
+
+<script>
+/* 功能性变量 */
+var File = document.getElementById('CBG');
+var fileName = document.getElementById('fileName');
+var download = document.getElementById('download');
+var C = document.getElementById("canvas");
+var CTX = C.getContext('2d');
+var Reader = new FileReader();
+
+var SCALE = 2;
+
+var startParse = false;
+var content    = "";
+var CBGFile    = {};
+
+var maxLength = 50;
+var size = 100;
+var fontSize = size / 8 * 5;
+
+Reader.onload = function() {
+  content = Reader.result;
+  try{
+    CBGFile = JSON.parse(content);
+    if(CBGFile.version == undefined){
+      alert('不合理的文件');
+    } else if(CBGFile.version > 199){
+      alert('文件版本过高');
+    } else {
+      draw();
+    }
+  }catch(e){
+    alert('不合理的文件' + e);
+  }
+}
+
+function parse(){
+  try{
+    Reader.readAsText(File.files[0]);
+  }catch(e){
+    alert('未选择文件\n' + e);
+  }
+}
+
+function update(){
+  document.getElementById("fileName").innerHTML = getFileName(File.value);
+}
+
+function draw(){
+  C.width  = ((maxLength) * fontSize / 5 * 3 + size) * SCALE;
+  CTX.font = fontSize * SCALE + 'px monospace';
+
+  let maxTextWidth = (maxLength - 4) / 5 * 3 * SCALE * fontSize;
+  let N = 0;
+  let CmdString = '';
+  let CB;
+
+  alert(maxTextWidth);
+
+  for(let i = 0; i < CBGFile.CB.length; i++){
+    CB        = CBGFile.CB[i];
+    CmdString = CB.Cmd;
+
+    let totalWidth = 0;
+    let index = 0;
+    for(let i = 0; i < CmdString.length;i++){
+      if(totalWidth < maxTextWidth){
+        totalWidth += CTX.measureText(CmdString[i]).width;
+      } else {
+        index = i - 1;
+        totalWidth = 0;
+        for(i-- ; i > 0; i--){
+          if(CmdString[i] == ',' || CmdString[i] == ' '){
+            CmdString = CmdString.slice(i + 1);
+            i = 0;
+            N++;
+            break;
+          }
+          if(i <= 2){
+            CmdString = CmdString.slice(index + 1);
+            i = 0;
+            N++;
+            break;
+          }
+        }
+      }
+      if(i == CmdString.length-1){
+        N++;
+      }
+    }
+  }
+
+  C.height = size * SCALE * N + 20 * SCALE;
+  CTX.font = fontSize * SCALE + 'px monospace';
+  CTX.fontSize = fontSize * SCALE;
+  CTX.textBaseline = 'middle';
+  CTX.fillStyle = '#ffffff';
+  CTX.fillRect(0, 0, C.width, C.height);
+  CTX.fillStyle = '#000000';
+  
+  N = 0;
+
+  for(let i = 0; i < CBGFile.CB.length; i++){
+    CB        = CBGFile.CB[i];
+    CmdString = CB.Cmd;
+
+    CBGen(CTX, {
+      x: 0,
+      y: N * size * SCALE,
+      type: CB.Type,
+      delay: CB.delay,
+      ctrl: CB.isConditional,
+      size: size * SCALE,
+      emptyLine: false
+    });
+
+    let string_ = 0;
+    let totalWidth = 0;
+    let index = 0;
+    for(let i = 0; i < CmdString.length;i++){
+      if(totalWidth < maxTextWidth){
+        totalWidth += CTX.measureText(CmdString[i]).width;
+      } else {
+        index = i - 1;
+        totalWidth = 0;
+        for(i-- ;i > 0;i--){
+          if(CmdString[i] == ',' || CmdString[i] == ' '){
+            string_   = CmdString.slice(0, i + 1);
+            CmdString = CmdString.slice(i + 1);
+            i = 0;
+            CTX.fillText(string_,
+                         size * SCALE * 1.05,
+                         (N + 0.5) * size * SCALE);
+            N++;
+            CBGen(CTX, {
+              x:         0,
+              y:         N * size * SCALE,
+              type:      CB.Type,
+              delay:     CB.delay,
+              ctrl:      CB.isConditional,
+              size:      size * SCALE,
+              emptyLine: true
+            });
+            break;
+          }
+          if(i <= 2){
+            string_   = CmdString.slice(0, index + 1);
+            CmdString = CmdString.slice(index + 1);
+            CTX.fillText(string_,
+                         size * SCALE * 1.05,
+                         (N + 0.5) * size * SCALE);
+            N++;
+
+            CBGen(CTX, {
+              x:         0,
+              y:         N * size * SCALE,
+              type:      CB.Type,
+              delay:     CB.delay,
+              ctrl:      CB.isConditional,
+              size:      size * SCALE,
+              emptyLine: true
+            });
+
+            i = 0;
+            break;
+          }
+        }
+      }
+      if(i == CmdString.length-1){
+        CTX.fillText(CmdString,
+                     size * SCALE * 1.05,
+                     (N + 0.5) * size * SCALE);
+        N++;
+      }
+    }
+  }
+
+  var img = canvas.toDataURL('image/png');  
+  download.href = img;
+  download.download = getFileName(File.value) + '.png';
+  document.getElementById('result').src = img;
+}
+
+function CBGen(canvas, opt, text){
+  if(typeof(opt) != 'object')
+    return;
+
+  let x            = opt.x,
+      y            = opt.y,
+      type         = opt.type,
+      delay        = opt.delay,
+      ctrl         = opt.ctrl,
+      size_        = opt.size,
+      emptyLine    = opt.emptyLine;
+      
+  let oldFillStyle = canvas.fillStyle;
+  let oldFont      = canvas.font;
+  let fontSize_    = size_ / 20 * 5;
+  let oldTextAlign = canvas.textAlign;
+  let oldLineWidth = canvas.lineWidth;
+  let oldBaseline  = canvas.textBaseline;
+  
+  canvas.fillStyle    = '#000000';
+  canvas.textAlign    = 'center';
+  canvas.lineWidth    = size_ / 30;
+  x                  += canvas.lineWidth;
+  y                  += canvas.lineWidth;
+  canvas.textBaseline = 'alphabetic';
+
+  if(!emptyLine){
+    canvas.rect(x, y, size_, size_);
+    canvas.stroke();
+  
+    canvas.font = fontSize_ + 'px monospace';
+    canvas.fillText(type, x + size_ / 2, y + fontSize_);
+  }
+
+  canvas.beginPath();
+  canvas.lineJoin = "round";
+  canvas.moveTo(x + size_ / 2, y + size_ / 10 * 3);
+  canvas.lineTo(x + size_ / 2, y + size_ / 60 * 53);
+  canvas.lineTo(x + size_ / 10 * 3, y + size_ / 30 * 19);
+  canvas.moveTo(x + size_ / 2, y + size_ / 60 * 53);
+  canvas.lineTo(x + size_ / 10 * 7, y + size_ / 30 * 19);
+
+  if(!emptyLine){
+    if(ctrl) {
+      canvas.moveTo(x + size_ / 10 * 3, y + size_ / 2);
+      canvas.lineTo(x + size_ / 10 * 7, y + size_ / 2);
+    }
+    if(delay != 0) {
+      canvas.translate(x + size_ / 20 * 19, y + size_ / 2);
+      canvas.rotate(-Math.PI / 2);
+      canvas.font = fontSize_ + 'px sans-serif';
+      canvas.fillText(delay + 'tk', 0, 0);
+      canvas.rotate(Math.PI / 2);
+      canvas.translate(-x - size_ / 20 * 19, -y - size_ / 2);
+    }
+  }
+  canvas.stroke();
+  
+  canvas.fillStyle    = oldFillStyle;
+  canvas.font         = oldFont;
+  canvas.textAlign    = oldTextAlign;
+  canvas.lineWidth    = oldLineWidth;
+  canvas.textBaseline = oldBaseline;
+}
+
+
+function getFileName(str){
+  str = str.split('\\');
+  return str[str.length - 1];
+}
+</script>
+
+</body>
+</html>
