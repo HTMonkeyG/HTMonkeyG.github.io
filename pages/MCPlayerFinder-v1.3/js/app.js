@@ -9,7 +9,10 @@ var step = 0,
   active = false;
 
 var Out = document.getElementById('result'),
-  monitor = document.getElementById('monitor');;
+  monitor = document.getElementById('monitor');
+
+Out.value = "-";
+monitor.value = "-";
 
 document.getElementById("result").onclick = function (e) {
   if (!workObj.data[0]) return;
@@ -90,7 +93,8 @@ function init() {
 
 function reset() {
   document.getElementById('ctrl').innerHTML = '开始查找';
-  Out.value = "";
+  Out.value = "-";
+  monitor.value = "-";
   workObj = new DBAM();
 
   enblValueInput();
