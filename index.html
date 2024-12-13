@@ -1,25 +1,91 @@
 <html>
 
+<style>
+  body {
+    background-color: #353535;
+    padding: 0;
+    margin: 0;
+  }
+
+  #header {
+    position: relative;
+    z-index: 10;
+    width: 90%;
+    height: 140px;
+    max-width: 950px;
+    margin: 0 auto;
+    padding-bottom: 20px;
+    background: url("img/avatar.jpg") 10px 40px no-repeat;
+  }
+
+  #header h1 {
+    margin-left: 120px;
+    padding: 0;
+    float: left;
+    max-height: 95px;
+  }
+
+  #header h1 a {
+    display: block;
+    margin: 0;
+    padding: 80px 0 25px 10px;
+    line-height: 0;
+    max-height: 0;
+    color: #eee;
+    background: 0 0;
+    font-family: sans-serif;
+    font-size: 180%;
+    text-decoration: none;
+    letter-spacing: .9px;
+  }
+
+  #separator {
+    width: 100%;
+    margin: 10px 0 0 0;
+    height: 30px;
+    background: linear-gradient(to bottom, #888 0%, #656565 100%);
+    display: inline-block;
+  }
+
+  @media (max-width: 479px) {
+    #header {
+      background-size: 55px 55px;
+    }
+  }
+
+  @media (min-width: 480px) and (max-width: 580px) {
+    #header {
+      background-size: 66px 66px;
+    }
+  }
+
+  @media (min-width: 581px) and (max-width: 767px) {
+    #header {
+      background-size: 77px 77px;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 979px) {
+    #header {
+      background-size: 88px 88px;
+    }
+  }
+</style>
+
 <head>
   <meta charset="UTF-8">
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
     name="viewport">
-  <title>HTMonkeyG</title>
-  <h1>HTMonkeyG的单页应用集合</h1>
-  <h2>部分可能未完成，就当看个乐子</h2>
+  <title>HTMonkeyG' Homepage</title>
 </head>
 
 <body>
-  <br>
-  <a href="MCPlayerFinder/index.html">(已完成)玩家查找器</a>
-  <br>
-  <a href="pages/PowerCalculator_v2.5.html">(有bug)次方运算器</a>
-  <br>
-  <a href="pages/CBGPrinter_v1.1.html">(勉强能用)命令块简图生成器</a>
-  <br>
-  <a href="pages/CBGViewer_v0.8.html">(未完成)命令块简图查看器</a>
-  <br>
-  <a href="pages/JuliaSet_v2.1.html">(未完成)Julia集合查看器</a>
+  <div id="header">
+    <h1><a href="/"><span>HTMonkeyG</span></a></h1>
+  </div>
+  <div id="separator">
+
+  </div>
 </body>
 
 </html>
